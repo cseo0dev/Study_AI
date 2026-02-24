@@ -8,6 +8,11 @@ public class SetMicrophone : MonoBehaviour
     public Dropdown dropdown; // 마이크 목록을 표시할 드롭다운
     public string currentMicrophone; // 현재 선택된 마이크
 
+    void Start()
+    {
+        SetDeviceMicrophone();
+    }
+
     void SetDeviceMicrophone()
     {
         // 디바이스에 연결된 마이크 목록 가져오기
