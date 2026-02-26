@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Text;
 using Unity.Multiplayer.Center.Common;
@@ -13,6 +14,13 @@ public class OpenAIManager : MonoBehaviour
 
     public static OpenAIManager Instance;
 
+    // 액션 추가
+    public event Action OnReceivedMessage;
+
+    // NPC 설정 추가
+    public string currentPrompt = "당신은 NPC 캐릭터 RobotKyle입니다. 질문에 답해주세요." + "특히 철자 오류를 교정하세요" + "Chat gpt";
+    public Text uiText;
+
     private void Awake()
     {
         if (Instance == null)
@@ -20,7 +28,17 @@ public class OpenAIManager : MonoBehaviour
         else
             Destroy(gameObject);
     }
-    
+
+    private void Start()
+    {
+        WhisperManager.Instance.OnReceivedWhisper += RecievedWhisper;
+    }
+
+    private void RecievedWhisper(string transcribedText)
+    {
+        StartCoroutine(SendOpenAIRequest(currentPrompt, transcribedText, uiText));
+    }
+
     public IEnumerator SendOpenAIRequest(string prompt, string message, Text resultText)
     {
         string jsonData = @"{
@@ -64,6 +82,7 @@ public class OpenAIManager : MonoBehaviour
                 {
                     string assistantMessage = responseData.choices[0].message.content;
                     resultText.text = assistantMessage;
+                    OnReceivedMessage?.Invoke();
                 }
                 else
                     Debug.LogWarning("No valid response from the assistant");
