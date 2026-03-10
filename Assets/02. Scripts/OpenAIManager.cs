@@ -1,25 +1,25 @@
 using System;
 using System.Collections;
 using System.Text;
-using Unity.Multiplayer.Center.Common;
-using UnityEditor.VersionControl;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.UI;
 
 public class OpenAIManager : MonoBehaviour
 {
     private const string apiUrl = "https://api.openai.com/v1/chat/completions";
-    private const string apiKey = "";
+    public string apiKey = "";
+    public string prompt = "You are a helpful assistant. Answer questions concisely using only standard alphanumeric characters and basic punctuation (e.g., periods, commas). Avoid symbols, emojis, or markdown formatting to ensure compatibility with text-to-speech APIs.";
 
     public static OpenAIManager Instance;
 
-    // 액션 추가
-    public event Action OnReceivedMessage;
-
+    // Whisper API
     // NPC 설정 추가
-    public string currentPrompt = "당신은 NPC 캐릭터 RobotKyle입니다. 질문에 답해주세요." + "특히 철자 오류를 교정하세요" + "Chat gpt";
-    public Text uiText;
+    //public event Action OnReceivedMessage;
+    //public string currentPrompt = "당신은 NPC 캐릭터 RobotKyle입니다. 질문에 답해주세요." + "특히 철자 오류를 교정하세요" + "Chat gpt";
+    //public Text uiText;
+
+    // TTS API
+    public event Action<string> onResponseOpenAI;  // InputField 텍스트 완료 이벤트
 
     private void Awake()
     {
@@ -31,15 +31,29 @@ public class OpenAIManager : MonoBehaviour
 
     private void Start()
     {
-        WhisperManager.Instance.OnReceivedWhisper += RecievedWhisper;
+        // WhisperManager.Instance.OnReceivedWhisper += RecievedWhisper;
+
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.onInputFieldSubmit += OnInputFieldCompleted;
+        }
+        else
+        {
+            Debug.LogError("UIManager 인스턴스가 없습니다.");
+        }
     }
 
-    private void RecievedWhisper(string transcribedText)
+    //private void RecievedWhisper(string transcribedText)
+    //{
+    //    StartCoroutine(SendOpenAIRequest(currentPrompt, transcribedText, uiText));
+    //}
+
+    private void OnInputFieldCompleted(string message)
     {
-        StartCoroutine(SendOpenAIRequest(currentPrompt, transcribedText, uiText));
+        StartCoroutine(SendOpenAIRequest(prompt, message));
     }
 
-    public IEnumerator SendOpenAIRequest(string prompt, string message, Text resultText)
+    public IEnumerator SendOpenAIRequest(string prompt, string message)
     {
         string jsonData = @"{
             ""model"": ""gpt-4o"",
@@ -52,41 +66,48 @@ public class OpenAIManager : MonoBehaviour
                     ""role"": ""user"",
                     ""content"": """ + message + @"""
                 }
-            ]
+            ],
+            ""store"": false
         }";
+
         byte[] postData = Encoding.UTF8.GetBytes(jsonData);
 
         using (UnityWebRequest request = new UnityWebRequest(apiUrl, "POST"))
         {
             request.SetRequestHeader("Content-Type", "application/json");
             request.SetRequestHeader("Authorization", "Bearer " + apiKey);
-
             request.uploadHandler = new UploadHandlerRaw(postData);
             request.downloadHandler = new DownloadHandlerBuffer();
 
             yield return request.SendWebRequest();
 
-            // ���� �ڵ鸵
             if (request.result == UnityWebRequest.Result.ConnectionError || request.result ==
                 UnityWebRequest.Result.ProtocolError)
                 Debug.Log("Error : " + request.error);
             else
             {
-                // ���� ó��
                 string responseText = request.downloadHandler.text;
                 Debug.Log("Response : " + responseText);
 
-                // ���� �����Ϳ��� assistant �޼��� ����
                 var responseData = JsonUtility.FromJson<OpenAIResponse>(responseText);
                 if (responseData.choices != null && responseData.choices.Length > 0)
                 {
                     string assistantMessage = responseData.choices[0].message.content;
-                    resultText.text = assistantMessage;
-                    OnReceivedMessage?.Invoke();
+                    // resultText.text = assistantMessage;
+                    // OnReceivedMessage?.Invoke();
+                    onResponseOpenAI?.Invoke(assistantMessage);
                 }
                 else
                     Debug.LogWarning("No valid response from the assistant");
             }
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.onInputFieldSubmit -= OnInputFieldCompleted;
         }
     }
 }

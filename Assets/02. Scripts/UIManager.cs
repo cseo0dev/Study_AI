@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,6 +8,8 @@ public class UIManager : MonoBehaviour
     public InputField inputField;
 
     public Text resultText;
+
+    public event Action<string> onInputFieldSubmit;  // InputField 텍스트 완료 이벤트
 
     private void Awake()
     {
@@ -23,14 +26,23 @@ public class UIManager : MonoBehaviour
 
     private void OnInputFieldEndEdit(string inputText)
     {
-        if (!string.IsNullOrEmpty(inputText))
+        if (!Input.GetKeyDown(KeyCode.Return) && !Input.GetKeyDown(KeyCode.KeypadEnter))
+            return;
+
+        if (!string.IsNullOrWhiteSpace(inputText))
         {
-            StartCoroutine(OpenAIManager.Instance.SendOpenAIRequest("Answer any question.", inputText, resultText));
+            onInputFieldSubmit?.Invoke(inputText);
             inputField.text = "";
+            inputField.ActivateInputField();
         }
         else
         {
             Debug.LogWarning("Input field is empty or null");
         }
+    }
+
+    private void OnResponseOpenAI(string message)
+    {
+        resultText.text = message;
     }
 }
