@@ -45,7 +45,6 @@ public class NPCManager : MonoBehaviour
 
         // TTS
         OpenAITTS.Instance.onResponseTTS += StartTalking;
-
         OpenAITTS.Instance.onStopAudio += StopTalking;
 
         //WhisperManager.Instance.OnStartRecording += OnInputFieldChanged; // 녹음 시작 시 Listen Anim 호출

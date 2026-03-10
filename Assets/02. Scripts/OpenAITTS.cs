@@ -59,6 +59,7 @@ public class OpenAITTS : MonoBehaviour
     {
         if (string.IsNullOrEmpty(s))
             return s;
+
         return s
             .Replace("\\", "\\\\")   // 역슬래시
             .Replace("\"", "\\\"")   // 큰따옴표

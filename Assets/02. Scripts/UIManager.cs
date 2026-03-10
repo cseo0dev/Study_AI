@@ -5,8 +5,8 @@ using UnityEngine.UI;
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance;
-    public InputField inputField;
 
+    public InputField inputField;
     public Text resultText;
 
     public event Action<string> onInputFieldSubmit;  // InputField 텍스트 완료 이벤트
@@ -26,23 +26,24 @@ public class UIManager : MonoBehaviour
 
     private void OnInputFieldEndEdit(string inputText)
     {
-        if (!Input.GetKeyDown(KeyCode.Return) && !Input.GetKeyDown(KeyCode.KeypadEnter))
-            return;
-
         if (!string.IsNullOrWhiteSpace(inputText))
         {
             onInputFieldSubmit?.Invoke(inputText);
             inputField.text = "";
-            inputField.ActivateInputField();
         }
         else
         {
-            Debug.LogWarning("Input field is empty or null");
+            Debug.LogWarning("질문이 입력되지 않았습니다.");
         }
     }
 
     private void OnResponseOpenAI(string message)
     {
         resultText.text = message;
+    }
+
+    private void OnDestroy()
+    {
+        inputField.onSubmit.RemoveListener(OnInputFieldEndEdit);
     }
 }
